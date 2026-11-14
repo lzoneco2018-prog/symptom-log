@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>体調記録レポート</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: #e9e8e3; }
+    .ctrl { max-width: 210mm; margin: 0 auto; padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .ctrl select, .ctrl input { font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .ctrl .btn { flex: 0 0 auto; padding: 10px 14px; font-size: 14px; }
+    .ctrl .note { width: 100%; font-size: 12px; color: var(--ink2); }
+    .paper { background: #fff; width: 210mm; max-width: 100%; margin: 0 auto 20px; padding: 12mm; color: #111; font-size: 10pt; line-height: 1.45; }
+    .paper h1 { font-size: 16pt; margin: 0 0 2mm; border-bottom: 2px solid #111; padding-bottom: 2mm; display: flex; justify-content: space-between; align-items: baseline; }
+    .paper h1 small { font-size: 9pt; font-weight: normal; }
+    .paper h2 { font-size: 11pt; margin: 5mm 0 2mm; padding-left: 2mm; border-left: 4px solid #2a78d6; }
+    .meta { display: grid; grid-template-columns: repeat(4, auto); gap: 1mm 6mm; font-size: 9.5pt; margin: 2mm 0; justify-content: start; }
+    .meta b { font-weight: 600; margin-right: 2mm; }
+    table { border-collapse: collapse; width: 100%; }
+    .kv td, .kv th { border: 1px solid #bbb; padding: 0.8mm 2mm; vertical-align: top; text-align: left; font-size: 9pt; }
+    .kv th { background: #f2f2ef; width: 32mm; font-weight: 600; white-space: nowrap; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+    .chartbox { break-inside: avoid; }
+    .chartbox h3 { font-size: 9.5pt; margin: 1mm 0; }
+    .daily th, .daily td { border: 1px solid #bbb; padding: 0.8mm 1mm; font-size: 7.6pt; vertical-align: top; }
+    .daily th { background: #f2f2ef; font-weight: 600; }
+    .daily td.n { text-align: center; white-space: nowrap; }
+    .daily tr.alert td { background: #fdecec; }
+    .daily tr { page-break-inside: avoid; break-inside: avoid; }
+    .hi { color: #c62828; font-weight: 700; }
+    .foot { margin-top: 4mm; font-size: 8pt; color: #555; }
+    .memo li { margin: 0.6mm 0; }
+    .pb { break-before: page; page-break-before: always; }
+    @page { size: A4 portrait; margin: 10mm; }
+    @media print {
+      body { background: #fff; }
+      .noprint { display: none !important; }
+      .paper { width: auto; margin: 0; padding: 0; }
+      .chart .tip { display: none !important; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    @media screen and (max-width: 800px) { .paper { padding: 5mm; } .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="ctrl noprint">
+    <button class="btn sub" id="back">← 戻る</button>
+    <select id="period">
+      <option value="14">直近2週間</option>
+      <option value="28" selected>直近4週間</option>
+      <option value="thism">今月</option>
+      <option value="lastm">先月</option>
+      <option value="custom">期間を指定</option>
+    </select>
+    <span id="custom" hidden><input type="date" id="from"> 〜 <input type="date" id="to"></span>
+    <button class="btn" id="print">印刷・PDF保存</button>
+    <button class="btn sub" id="csv">CSVダウンロード</button>
+    <button class="btn sub" id="ext" hidden>ブラウザで開く</button>
+    <div class="note" id="note">「印刷・PDF保存」→ 送信先で「PDFに保存」を選ぶとA4のPDFになります。</div>
+  </div>
+  <div class="paper" id="paper"><p class="muted">読み込み中…</p></div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="config.js"></script>
+  <script src="fields.js"></script>
+  <script src="common.js"></script>
+  <script src="report.js"></script>
+</body>
+</html>

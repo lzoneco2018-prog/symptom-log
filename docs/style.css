@@ -1,0 +1,102 @@
+:root {
+  --bg: #f4f3ef;
+  --card: #ffffff;
+  --ink: #1b1b1a;
+  --ink2: #55544f;
+  --muted: #8a8983;
+  --line: #e2e0d9;
+  --accent: #2a78d6;
+  --accent-soft: #e7f0fb;
+  --danger: #c62828;
+  --danger-soft: #fdecec;
+  --ok: #1f7a3a;
+  --s1: #2a78d6; /* 朝 */
+  --s2: #eb6834; /* 昼 */
+  --s3: #1baf7a; /* 夜 */
+  --radius: 12px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+  font-size: 16px; line-height: 1.5;
+}
+button { font: inherit; color: inherit; }
+.wrap { max-width: 640px; margin: 0 auto; padding: 12px 12px 120px; }
+
+/* ヘッダー・タブ */
+.top { position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 10px 12px 6px; max-width: 640px; margin: 0 auto; }
+.top h1 { font-size: 17px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
+.top h1 small { font-weight: normal; color: var(--ink2); font-size: 13px; }
+.nav { display: flex; gap: 6px; }
+.nav button { flex: 1; padding: 9px 0; border: 1px solid var(--line); border-radius: 999px; background: var(--card); font-size: 14px; }
+.nav button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.bar { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+.bar select, .bar input[type=date] { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.slots { display: flex; gap: 6px; width: 100%; }
+.slots button { flex: 1; padding: 12px 0; border-radius: 10px; border: 2px solid var(--line); background: #fff; font-weight: 600; position: relative; }
+.slots button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.slots button .done { display: block; font-size: 11px; font-weight: normal; color: var(--ok); }
+.slots button .todo { display: block; font-size: 11px; font-weight: normal; color: var(--muted); }
+
+/* カード */
+.card { background: var(--card); border-radius: var(--radius); padding: 14px; margin: 12px 0; border: 1px solid var(--line); }
+.card h2 { font-size: 15px; margin: 0 0 10px; color: var(--ink2); }
+.card.danger { border-color: #f1b8b8; background: #fffafa; }
+.card.danger h2 { color: var(--danger); }
+.field { margin: 14px 0; }
+.field:first-of-type { margin-top: 4px; }
+.field .q { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+.field .q .req { color: var(--danger); font-size: 12px; margin-left: 4px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 44px; padding: 8px 14px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: 15px; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.card.danger .chip.on { background: var(--danger); border-color: var(--danger); }
+
+.scale5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.scale5 .chip { border-radius: 10px; padding: 8px 2px; font-size: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.scale5 .chip b { font-size: 18px; }
+
+.nrs { display: grid; grid-template-columns: repeat(11, 1fr); gap: 3px; }
+.nrs .chip { border-radius: 8px; padding: 0; min-height: 46px; font-weight: 700; font-size: 16px; }
+.nrs-legend { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+textarea { width: 100%; min-height: 80px; font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+
+.alertbox { background: var(--danger-soft); color: var(--danger); border: 2px solid var(--danger); border-radius: 10px; padding: 12px; margin-top: 12px; font-weight: 600; }
+.alertbox a { color: var(--danger); }
+
+.save { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: rgba(244,243,239,.96); border-top: 1px solid var(--line); z-index: 20; }
+.save .in { max-width: 640px; margin: 0 auto; display: flex; gap: 8px; }
+.btn { border: 0; border-radius: 12px; padding: 14px 16px; font-weight: 700; font-size: 16px; background: var(--accent); color: #fff; flex: 1; }
+.btn.sub { background: #fff; color: var(--ink); border: 1px solid var(--line); flex: 0 0 auto; font-weight: 600; font-size: 14px; }
+.btn:disabled { opacity: .5; }
+
+.toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 30; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+/* 履歴 */
+.day { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; margin: 10px 0; }
+.day h3 { margin: 0 0 6px; font-size: 15px; }
+.day .row { display: grid; grid-template-columns: 36px 1fr; gap: 6px; font-size: 14px; padding: 4px 0; border-top: 1px dashed var(--line); }
+.day .row:first-of-type { border-top: 0; }
+.tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: #eee; margin: 0 4px 2px 0; }
+.tag.red { background: var(--danger-soft); color: var(--danger); font-weight: 700; }
+.slotdot { font-weight: 700; }
+.muted { color: var(--muted); }
+.center { text-align: center; }
+
+/* 登録 */
+.reg input { font: inherit; font-size: 20px; padding: 12px; width: 100%; border: 1px solid var(--line); border-radius: 10px; text-transform: uppercase; letter-spacing: 2px; }
+.demo-banner { background: #fff6d6; border: 1px solid #f0d77a; color: #6b5300; font-size: 13px; padding: 8px 12px; border-radius: 10px; margin: 8px 0; }
+
+/* チャート */
+.chart { position: relative; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart .tip { position: absolute; pointer-events: none; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; display: none; z-index: 5; }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink2); margin: 4px 0 2px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+.legend i.sq { height: 10px; width: 10px; border-radius: 2px; }
