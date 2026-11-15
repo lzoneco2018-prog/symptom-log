@@ -40,7 +40,10 @@
           vertigo: vert ? [pick(["ぐるぐる回る", "ぐるぐる回る", "ふわふわする"])] : ["なし"],
           fall: vert && rnd() < 0.15 ? "ふらついた" : "なし",
           redflags: [],
+          meal: base >= 7 ? pick(["少しだけ", "食べられなかった"]) : pick(["しっかり食べた", "しっかり食べた", "半分くらい"]),
         };
+        if (r.meal !== "食べられなかった") r.meal_items = [pick(["ごはん・パン・麺", "ゼリー・栄養補助食品"]), pick(["肉・魚・卵", "野菜・海藻", "汁物・スープ"])];
+        if (r.meal !== "しっかり食べた") r.meal_reason = [pick(["吐き気", "食欲がない", "起き上がれない"])];
         if (vert) Object.assign(r, {
           vertigo_count: pick(["1回", "2〜3回", "2〜3回", "4〜5回"]),
           vertigo_duration: pick(["1分以内", "1分以内", "1〜5分"]),

@@ -58,6 +58,20 @@ window.FIELD_GROUPS = [
     ],
   },
   {
+    title: "食事",
+    fields: [
+      { key: "meal", short: "食事量", label: "{meal}は食べられましたか", type: "single",
+        options: ["しっかり食べた", "半分くらい", "少しだけ", "食べられなかった"] },
+      { key: "meal_items", short: "食べたもの", label: "食べたもの", type: "multi",
+        showIf: (r) => r.meal && r.meal !== "食べられなかった",
+        options: ["ごはん・パン・麺", "肉・魚・卵", "豆腐・納豆", "野菜・海藻", "汁物・スープ",
+                  "果物", "乳製品", "ゼリー・栄養補助食品", "お菓子・間食", "コーヒー・お茶"] },
+      { key: "meal_reason", short: "食べられなかった理由", label: "食べられなかった理由", type: "multi",
+        showIf: (r) => r.meal && r.meal !== "しっかり食べた",
+        options: ["吐き気", "食欲がない", "起き上がれない", "めまいがつらい", "時間がなかった", "その他"] },
+    ],
+  },
+  {
     title: "1日のふりかえり",
     slotsOnly: ["夜"],
     fields: [

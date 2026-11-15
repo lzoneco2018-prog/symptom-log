@@ -100,6 +100,8 @@
         <tr><th>ふらつき・転倒</th><td>${countStr(count(recs, "fall"), F("fall").options, ["なし"])}</td></tr>
         <tr><th>起きて過ごせた時間</th><td>${countStr(count(night, "upright_time"), F("upright_time").options)}　（活動：${countStr(count(night, "activity"), F("activity").options)}）</td></tr>
         <tr><th>睡眠</th><td>${countStr(count(recs, "sleep_quality"), F("sleep_quality").options)}／${countStr(count(recs, "sleep_hours"), F("sleep_hours").options)}</td></tr>
+        <tr><th>食事</th><td>${slots.map((s) => `${s}：${countStr(count(recs.filter((r) => r.slot === s), "meal"), F("meal").options)}`).join("<br>")}<br>
+          食べたもの：${countStr(count(recs, "meal_items"))}<br>食べられなかった理由：${countStr(count(recs, "meal_reason"))}</td></tr>
         <tr><th>水分量</th><td>${countStr(count(night, "water"), F("water").options)}</td></tr>
         <tr><th>服薬</th><td>定期薬：${countStr(count(night, "meds"), F("meds").options)}<br>頓服：${countStr(count(night, "prn"), null, ["なし"])}</td></tr>
         <tr><th>通院・処置</th><td>${events.length ? events.map(E).join("、") : "—"}　ケア：${countStr(count(night, "care"), null, ["なし", "通院", "点滴", "ブラッドパッチ"])}</td></tr>
@@ -121,21 +123,21 @@
 
       <h2>メモ</h2>
       ${memos.length ? `<ul class="memo">${memos.map((r) => `<li>${App.mdw(r.date)} ${r.slot}：${E(r.record.memo)}</li>`).join("")}</ul>` : "<p>—</p>"}
-      <p class="foot">※本人がスマートフォンで選択式に記録した自己申告データです。めまい回数は選択肢（1回／2〜3回／4〜5回／6回以上）を 1／2.5／4.5／6 として合計した目安です。気圧は記録時点の推計値（Open-Meteo）。</p>`;
+      <p class="foot">※本人がスマートフォンで選択式に記録した自己申告データです。食事は ◎しっかり ○半分 △少し ×食べられず。めまい回数は選択肢（1回／2〜3回／4〜5回／6回以上）を 1／2.5／4.5／6 として合計した目安です。気圧は記録時点の推計値（Open-Meteo）。</p>`;
     $("#paper").innerHTML = h;
 
     const labels = days.map((d) => { const x = App.parseYmd(d); return `${x.getMonth() + 1}/${x.getDate()}`; });
-    App.lineChart($("#c1"), { labels, height: 140,
+    App.lineChart($("#c1"), { labels, height: 115,
       series: slots.map((s) => ({ name: s, color: App.SLOT_COLORS[s], values: days.map((d) => { const r = get(d, s); return r && r.record.headache !== undefined ? Number(r.record.headache) : null; }) })) });
-    App.barChart($("#c2"), { labels, height: 140, unit: "回", values: days.map((d) => slots.reduce((a, s) => { const r = get(d, s); return a + (r ? App.vertigoNum(r.record) : 0); }, 0)) });
+    App.barChart($("#c2"), { labels, height: 115, unit: "回", values: days.map((d) => slots.reduce((a, s) => { const r = get(d, s); return a + (r ? App.vertigoNum(r.record) : 0); }, 0)) });
     const upMap = { "1時間未満": 0.5, "1〜3時間": 2, "3〜6時間": 4.5, "6〜9時間": 7.5, "9時間以上": 10 };
-    App.barChart($("#c3"), { labels, height: 115, unit: "時間", yMax: 10, color: "var(--s3)",
+    App.barChart($("#c3"), { labels, height: 95, unit: "時間", yMax: 10, color: "var(--s3)",
       values: days.map((d) => { const r = get(d, "夜"); return r && upMap[r.record.upright_time] || 0; }),
       tipFmt: (i) => { const r = get(days[i], "夜"); return `<b>${labels[i]}</b><br>${r && r.record.upright_time ? r.record.upright_time : "未記録"}`; } });
     const pv = days.map((d) => { const ps = recs.filter((r) => r.date === d && r.pressure).map((r) => r.pressure); return ps.length ? Math.round(ps.reduce((a, b) => a + b) / ps.length) : null; });
     const pvv = pv.filter((x) => x !== null);
     const pmin = pvv.length ? Math.floor((Math.min(...pvv) - 3) / 5) * 5 : 990, pmax = pvv.length ? Math.ceil((Math.max(...pvv) + 3) / 5) * 5 : 1030;
-    App.lineChart($("#c4"), { labels, height: 115, yMin: pmin, yMax: pmax, yTicks: [pmin, Math.round((pmin + pmax) / 2), pmax], unit: "hPa",
+    App.lineChart($("#c4"), { labels, height: 95, yMin: pmin, yMax: pmax, yTicks: [pmin, Math.round((pmin + pmax) / 2), pmax], unit: "hPa",
       series: [{ name: "気圧", color: "var(--ink2)", values: pv }] });
   }
 
@@ -148,6 +150,7 @@
     return a.join("、");
   }
 
+  const MEAL_MARK = { "しっかり食べた": "◎", "半分くらい": "○", "少しだけ": "△", "食べられなかった": "×" };
   function dailyTable(days, get, slots) {
     const ordOpt = F("orthostatic").options;
     let rows = "";
@@ -168,6 +171,7 @@
         <td class="n">${App.mdw(d)}</td>
         ${rs.map((r) => `<td class="n">${cell(r, "headache")}</td>`).join("")}
         ${rs.map((r) => `<td class="n">${cell(r, "overall")}</td>`).join("")}
+        ${rs.map((r) => `<td class="n">${r && r.record.meal ? MEAL_MARK[r.record.meal] || "" : ""}</td>`).join("")}
         <td>${E(orth)}</td>
         <td>${vtxt}</td>
         <td>${E(fall)}${(uni("redflags").length ? `<br><span class="hi">${E(uni("redflags").join("・"))}</span>` : "")}</td>
@@ -177,13 +181,13 @@
         <td>${m ? E(m.record.sleep_quality || "") : ""}</td>
       </tr>`;
     });
-    const cg = `<colgroup><col style="width:15mm">${slots.map(() => '<col style="width:5mm">').join("").repeat(2)}<col style="width:14mm"><col style="width:38mm"><col style="width:12mm"><col><col style="width:17mm"><col style="width:17mm"><col style="width:13mm"></colgroup>`;
+    const cg = `<colgroup><col style="width:15mm">${slots.map(() => '<col style="width:5mm">').join("").repeat(3)}<col style="width:14mm"><col style="width:34mm"><col style="width:12mm"><col><col style="width:17mm"><col style="width:17mm"><col style="width:13mm"></colgroup>`;
     return `<table class="daily" style="table-layout:fixed">${cg}
       <thead>
-        <tr><th rowspan="2">日付</th><th colspan="${slots.length}">頭痛(0-10)</th><th colspan="${slots.length}">体調(1-5)</th>
+        <tr><th rowspan="2">日付</th><th colspan="${slots.length}">頭痛(0-10)</th><th colspan="${slots.length}">体調(1-5)</th><th colspan="${slots.length}">食事</th>
           <th rowspan="2">起立後<br>悪化(最短)</th><th rowspan="2">めまい（回数目安・種類・きっかけ）</th><th rowspan="2">転倒/危険</th>
           <th rowspan="2">随伴症状</th><th rowspan="2">起きていた<br>時間・水分</th><th rowspan="2">頓服・処置</th><th rowspan="2">睡眠</th></tr>
-        <tr>${slots.map((s) => `<th>${s}</th>`).join("")}${slots.map((s) => `<th>${s}</th>`).join("")}</tr>
+        <tr>${slots.map((s) => `<th>${s}</th>`).join("").repeat(3)}</tr>
       </thead><tbody>${rows}</tbody></table>`;
   }
 

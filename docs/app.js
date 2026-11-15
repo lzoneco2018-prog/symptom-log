@@ -135,7 +135,8 @@
       body = `<div class="chips">${f.options.map((o) =>
         `<button class="chip ${on(o)}" data-k="${f.key}" data-v="${App.esc(o)}">${App.esc(o)}</button>`).join("")}</div>`;
     }
-    return `<div class="field"><div class="q">${f.label}${req}${multi}</div>${body}</div>`;
+    const label = f.label.replace("{meal}", { 朝: "朝食", 昼: "昼食", 夜: "夕食" }[S.slot] || "食事");
+    return `<div class="field"><div class="q">${label}${req}${multi}</div>${body}</div>`;
   }
 
   function nrsBg(n) {
@@ -253,6 +254,7 @@
     if (App.vertigoNum(r) > 0) t.push(`<span class="tag">めまい ${App.esc(r.vertigo_count || "")} ${App.esc((r.vertigo || []).join("・"))}</span>`);
     if (r.fall && r.fall !== "なし") t.push(`<span class="tag ${r.fall === "転倒した" ? "red" : ""}">${App.esc(r.fall)}</span>`);
     (r.redflags || []).forEach((x) => t.push(`<span class="tag red">${App.esc(x)}</span>`));
+    if (r.meal) t.push(`<span class="tag ${r.meal === "食べられなかった" ? "red" : ""}">食事 ${App.esc(r.meal)}</span>`);
     if (r.upright_time) t.push(`<span class="tag">起きていた ${App.esc(r.upright_time)}</span>`);
     if (r.symptoms && r.symptoms.length) t.push(`<br><span class="muted" style="font-size:13px">${App.esc(r.symptoms.join("・"))}</span>`);
     if (r.memo) t.push(`<br><span style="font-size:13px">📝 ${App.esc(r.memo)}</span>`);
