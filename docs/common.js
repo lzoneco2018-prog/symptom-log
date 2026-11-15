@@ -50,6 +50,11 @@
           vertigo_trigger: [pick(["右向きに寝返り", "起き上がる時", "上を向く"])],
           vertigo_strength: pick(["軽い", "中くらい"]),
         });
+        Object.assign(r, {
+          walk_min: pick([0, 10, 20, 30]), stretch_min: slot === "昼" ? pick([0, 30, 40, 60]) : 0,
+          desk_stand_min: pick([0, 15, 30]), desk_sit_min: slot === "朝" ? pick([0, 15]) : pick([30, 60, 90, 120]),
+        });
+        if (i === 3 && slot === "昼") r.activity_other = "買い物30分";
         if (slot === "朝") Object.assign(r, { sleep_quality: pick(["よく眠れた", "まあまあ", "あまり眠れず"]), sleep_hours: pick(["4〜6時間", "6〜8時間"]) });
         if (slot === "夜") Object.assign(r, {
           upright_time: base >= 6 ? "1〜3時間" : pick(["3〜6時間", "6〜9時間"]),
@@ -139,6 +144,9 @@
     if (!Array.isArray(r.vertigo) || !r.vertigo.length || r.vertigo.includes("なし")) return 0;
     return { "1回": 1, "2〜3回": 2.5, "4〜5回": 4.5, "6回以上": 6 }[r.vertigo_count] ?? 1;
   };
+  App.ACT_KEYS = [["walk_min", "徒歩"], ["stretch_min", "施術"], ["desk_stand_min", "立位事務"], ["desk_sit_min", "座位事務"]];
+  App.activityText = (r, short) => App.ACT_KEYS.filter(([k]) => Number(r[k]) > 0)
+    .map(([k, n]) => short ? `${n[0]}${r[k]}` : `${n}${window.fmtMin(r[k])}`).join(short ? " " : "・");
   App.isAlert = (r, th = 8) =>
     (Array.isArray(r.redflags) && r.redflags.length > 0) || Number(r.headache) >= th ||
     r.fall === "転倒した" || String(r.vertigo_strength || "").startsWith("強い");

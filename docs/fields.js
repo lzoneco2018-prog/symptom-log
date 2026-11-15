@@ -72,6 +72,21 @@ window.FIELD_GROUPS = [
     ],
   },
   {
+    title: "活動（前回の記録から今まで）",
+    fields: [
+      { key: "walk_min", short: "徒歩(分)", label: "徒歩", type: "minutes",
+        options: [0, 10, 20, 30, 45, 60, 90, 120] },
+      { key: "stretch_min", short: "ストレッチ施術(分)", label: "ストレッチ施術", type: "minutes",
+        options: [0, 10, 20, 30, 40, 50, 60, 90] },
+      { key: "desk_stand_min", short: "立位での事務(分)", label: "立って行う事務", type: "minutes",
+        options: [0, 15, 30, 60, 90, 120, 180, 240] },
+      { key: "desk_sit_min", short: "座位での事務(分)", label: "座って行う事務", type: "minutes",
+        options: [0, 15, 30, 60, 90, 120, 180, 240] },
+      { key: "activity_other", short: "その他の活動", label: "その他の活動（任意）", type: "text",
+        placeholder: "例：買い物30分、家事20分、車の運転15分" },
+    ],
+  },
+  {
     title: "1日のふりかえり",
     slotsOnly: ["夜"],
     fields: [
@@ -122,6 +137,13 @@ window.fieldVisible = function (f, slot, rec) {
   if (f.slots && !f.slots.includes(slot)) return false;
   if (f.showIf && !f.showIf(rec)) return false;
   return true;
+};
+
+window.fmtMin = function (n, last) {
+  n = Number(n);
+  if (!n) return "0分";
+  const h = Math.floor(n / 60), m = n % 60;
+  return (h ? h + "時間" : "") + (m ? m + "分" : "") + (last ? "以上" : "");
 };
 
 window.fmtValue = function (f, v) {

@@ -112,8 +112,7 @@
     $("#dateSel").onchange = (e) => { S.date = e.target.value; loadForm(); };
     main.querySelectorAll(".slots button").forEach((b) => b.onclick = () => { S.slot = b.dataset.slot; loadForm(); });
     main.querySelectorAll("[data-k]").forEach((b) => b.onclick = () => onChip(b.dataset.k, b.dataset.v));
-    const memo = main.querySelector("textarea[data-text]");
-    if (memo) memo.oninput = (e) => { S.rec[e.target.dataset.text] = e.target.value; };
+    main.querySelectorAll("textarea[data-text]").forEach((t) => t.oninput = (e) => { S.rec[e.target.dataset.text] = e.target.value; });
   }
 
   function renderField(f) {
@@ -129,8 +128,11 @@
       body = `<div class="nrs">${[...Array(11).keys()].map((n) =>
         `<button class="chip ${on(n)}" data-k="${f.key}" data-v="${n}" style="${on(n) ? "" : `background:${nrsBg(n)}`}">${n}</button>`).join("")}</div>
         <div class="nrs-legend"><span>痛みなし</span><span>想像できる最悪の痛み</span></div>`;
+    } else if (f.type === "minutes") {
+      body = `<div class="chips grid4">${f.options.map((o, i) =>
+        `<button class="chip ${on(o)}" data-k="${f.key}" data-v="${o}">${window.fmtMin(o, i === f.options.length - 1)}</button>`).join("")}</div>`;
     } else if (f.type === "text") {
-      body = `<textarea data-text="${f.key}" placeholder="自由にどうぞ（空欄でもOK）">${App.esc(v || "")}</textarea>`;
+      body = `<textarea data-text="${f.key}" placeholder="${App.esc(f.placeholder || "自由にどうぞ（空欄でもOK）")}">${App.esc(v || "")}</textarea>`;
     } else {
       body = `<div class="chips">${f.options.map((o) =>
         `<button class="chip ${on(o)}" data-k="${f.key}" data-v="${App.esc(o)}">${App.esc(o)}</button>`).join("")}</div>`;
@@ -146,7 +148,7 @@
 
   function onChip(key, val) {
     const f = window.ALL_FIELDS.find((x) => x.key === key);
-    if (f.type === "scale5" || f.type === "nrs") {
+    if (f.type === "scale5" || f.type === "nrs" || f.type === "minutes") {
       S.rec[key] = String(S.rec[key]) === val ? undefined : Number(val);
     } else if (f.type === "multi") {
       let a = Array.isArray(S.rec[key]) ? S.rec[key].slice() : [];
@@ -168,7 +170,7 @@
     const prev = S.records.filter((r) => key(r) < cur).sort((a, b) => key(b).localeCompare(key(a)))[0];
     if (!prev) return App.toast("前回の記録がありません");
     const copy = JSON.parse(JSON.stringify(prev.record));
-    delete copy.memo; delete copy.redflags;
+    delete copy.memo; delete copy.redflags; delete copy.activity_other;
     S.rec = Object.assign({}, S.rec, copy);
     renderForm();
     App.toast(`${App.mdw(prev.date)} ${prev.slot}の内容をコピーしました。違う所だけ直してください`);
@@ -255,6 +257,8 @@
     if (r.fall && r.fall !== "なし") t.push(`<span class="tag ${r.fall === "転倒した" ? "red" : ""}">${App.esc(r.fall)}</span>`);
     (r.redflags || []).forEach((x) => t.push(`<span class="tag red">${App.esc(x)}</span>`));
     if (r.meal) t.push(`<span class="tag ${r.meal === "食べられなかった" ? "red" : ""}">食事 ${App.esc(r.meal)}</span>`);
+    const act = App.activityText(r);
+    if (act) t.push(`<span class="tag">${App.esc(act)}</span>`);
     if (r.upright_time) t.push(`<span class="tag">起きていた ${App.esc(r.upright_time)}</span>`);
     if (r.symptoms && r.symptoms.length) t.push(`<br><span class="muted" style="font-size:13px">${App.esc(r.symptoms.join("・"))}</span>`);
     if (r.memo) t.push(`<br><span style="font-size:13px">📝 ${App.esc(r.memo)}</span>`);

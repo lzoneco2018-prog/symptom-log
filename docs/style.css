@@ -100,3 +100,5 @@ textarea { width: 100%; min-height: 80px; font: inherit; padding: 10px; border: 
 .legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink2); margin: 4px 0 2px; flex-wrap: wrap; }
 .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
 .legend i.sq { height: 10px; width: 10px; border-radius: 2px; }
+.chips.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.chips.grid4 .chip { padding: 6px 2px; font-size: 13px; border-radius: 10px; }
