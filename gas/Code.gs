@@ -345,6 +345,7 @@ function buildSummaryText_(date, conf) {
       parts.push('めまい ' + (d.vertigo_count || 'あり'));
     } else if (Array.isArray(d.vertigo)) parts.push('めまいなし');
     if (d.fall && d.fall !== 'なし') parts.push(d.fall);
+    if (d.meal) parts.push('食事 ' + d.meal);
     if (alertReasons_(d, conf.ALERT_HEADACHE).length) alert = true;
     lines.push('■' + slot + '：' + parts.join('／'));
     if (d.upright_time) lines.push('　起きて過ごせた時間 ' + d.upright_time + '／水分 ' + (d.water || '-'));
