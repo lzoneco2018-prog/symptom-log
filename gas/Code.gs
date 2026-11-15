@@ -346,8 +346,12 @@ function buildSummaryText_(date, conf) {
     } else if (Array.isArray(d.vertigo)) parts.push('めまいなし');
     if (d.fall && d.fall !== 'なし') parts.push(d.fall);
     if (d.meal) parts.push('食事 ' + d.meal);
+    const act = [['walk_min', '徒歩'], ['stretch_min', '施術'], ['desk_stand_min', '立位事務'], ['desk_sit_min', '座位事務']]
+      .filter((a) => Number(d[a[0]]) > 0).map((a) => a[1] + d[a[0]] + '分');
+    if (d.activity_other) act.push(d.activity_other);
     if (alertReasons_(d, conf.ALERT_HEADACHE).length) alert = true;
     lines.push('■' + slot + '：' + parts.join('／'));
+    if (act.length) lines.push('　活動：' + act.join('・'));
     if (d.upright_time) lines.push('　起きて過ごせた時間 ' + d.upright_time + '／水分 ' + (d.water || '-'));
     if (d.memo) lines.push('　メモ：' + d.memo);
   });
