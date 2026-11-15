@@ -86,7 +86,7 @@
       if (DEMO) {
         demoStore = demoRecords();
         const role = params.get("role") === "family" ? "family" : "patient";
-        App.me = { role, name: "デモユーザー", patientName: "本人（デモ）", slots: window.SLOTS };
+        App.me = { role, name: "デモユーザー", patientName: "本人（デモ）", slots: window.SLOTS, remindTimes: ["08:00", "13:00", "21:00"] };
         return App.me;
       }
       await liff.init({ liffId: C.LIFF_ID });
@@ -144,6 +144,16 @@
     if (!Array.isArray(r.vertigo) || !r.vertigo.length || r.vertigo.includes("なし")) return 0;
     return { "1回": 1, "2〜3回": 2.5, "4〜5回": 4.5, "6回以上": 6 }[r.vertigo_count] ?? 1;
   };
+  // 記録の対象期間（例：朝＝前日21時〜8時）
+  App.hm = (x) => { const m = String(x).match(/^(\d{1,2}):(\d{2})/); return m ? `${Number(m[1])}時${m[2] !== "00" ? Number(m[2]) + "分" : ""}` : x; };
+  App.periodText = (slot) => {
+    const t = (App.me && App.me.remindTimes) || ["08:00", "13:00", "21:00"];
+    const i = window.SLOTS.indexOf(slot), n = t.length;
+    if (i < 0) return "";
+    const p = (i - 1 + n) % n;
+    return `${i === 0 ? "前日" : ""}${window.SLOTS[p] || ""}${App.hm(t[p])} 〜 ${slot}${App.hm(t[i])}`;
+  };
+  App.periodDefs = () => window.SLOTS.map((s) => `${s}＝${App.periodText(s)}`).join("／");
   App.ACT_KEYS = [["walk_min", "徒歩"], ["stretch_min", "施術"], ["desk_stand_min", "立位事務"], ["desk_sit_min", "座位事務"]];
   App.activityText = (r, short) => App.ACT_KEYS.filter(([k]) => Number(r[k]) > 0)
     .map(([k, n]) => short ? `${n[0]}${r[k]}` : `${n}${window.fmtMin(r[k])}`).join(short ? " " : "・");

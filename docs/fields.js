@@ -40,7 +40,7 @@ window.FIELD_GROUPS = [
     fields: [
       { key: "vertigo", short: "めまいの種類", label: "めまいの種類", type: "multi", exclusive: "なし",
         options: ["なし", "ぐるぐる回る", "ふわふわする", "立ちくらみ"] },
-      { key: "vertigo_count", short: "めまい回数", label: "回数（前回の記録から）", type: "single",
+      { key: "vertigo_count", short: "めまい回数", label: "回数（対象期間中）", type: "single",
         showIf: (r) => hasVertigo(r),
         options: ["1回", "2〜3回", "4〜5回", "6回以上"] },
       { key: "vertigo_duration", short: "めまいの長さ", label: "1回の長さ", type: "single",
@@ -72,7 +72,7 @@ window.FIELD_GROUPS = [
     ],
   },
   {
-    title: "活動（前回の記録から今まで）",
+    title: "活動（対象期間中）",
     fields: [
       { key: "walk_min", short: "徒歩(分)", label: "徒歩", type: "minutes",
         options: [0, 10, 20, 30, 45, 60, 90, 120] },

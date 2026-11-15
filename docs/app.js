@@ -92,7 +92,8 @@
 
     let html = demoBanner() + `<div class="bar"><select id="dateSel">${dateOpts}</select>
       <span class="muted" style="font-size:13px">${findRec(S.date, S.slot) ? "記録済み：上書き保存されます" : ""}</span></div>
-      <div class="slots">${slotBtns}</div>`;
+      <div class="slots">${slotBtns}</div>
+      <div class="period">この記録の対象期間：<b>${App.periodText(S.slot)}</b><br><span>前回の記録時刻から今回の記録時刻までの状態を記録します</span></div>`;
 
     window.FIELD_GROUPS.forEach((g, gi) => {
       if (g.slotsOnly && !g.slotsOnly.includes(S.slot)) return;

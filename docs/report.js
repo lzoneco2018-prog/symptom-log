@@ -83,7 +83,7 @@
         <span><b>記録数</b>${recs.length} / ${days.length * slots.length}回（${Math.round((recs.length / (days.length * slots.length)) * 100)}%）</span>
         <span><b>記録時間帯</b>${slots.join("・")}</span>
       </div>
-      <div class="meta"><span><b>診断名（本人申告）</b>脳脊髄液減少症／良性発作性頭位めまい症</span></div>
+      <div class="meta" style="grid-template-columns:auto"><span><b>診断名（本人申告）</b>脳脊髄液減少症／良性発作性頭位めまい症</span><span><b>対象期間</b>${App.periodDefs()}</span></div>
 
       <h2>概要</h2>
       <table class="kv">
@@ -109,7 +109,7 @@
         <tr><th>注意が必要な記録</th><td>${alerts.length ? alerts.map((r) => `<span class="hi">${App.mdw(r.date)} ${r.slot}</span>：${E(alertText(r.record))}`).join("<br>") : "なし"}</td></tr>
       </table>
 
-      <h2>推移</h2>
+      <h2 class="pb">推移</h2>
       <div class="grid2">
         <div class="chartbox"><h3>頭痛の強さ（0〜10）</h3>
           <div class="legend">${slots.map((s) => `<span><i style="background:${App.SLOT_COLORS[s]}"></i>${s}</span>`).join("")}</div>
@@ -119,12 +119,12 @@
         <div class="chartbox"><h3>気圧（hPa・記録時点）</h3><div class="chart" id="c4"></div></div>
       </div>
 
-      <h2 class="pb">日別一覧</h2>
+      <h2>日別一覧</h2>
       ${dailyTable(days, get, slots)}
 
       <h2>メモ</h2>
       ${memos.length ? `<ul class="memo">${memos.map((r) => `<li>${App.mdw(r.date)} ${r.slot}：${E(r.record.memo)}</li>`).join("")}</ul>` : "<p>—</p>"}
-      <p class="foot">※本人がスマートフォンで選択式に記録した自己申告データです。活動は 徒=徒歩／施=ストレッチ施術／立=立位での事務／座=座位での事務 の1日合計（分）。食事は ◎しっかり ○半分 △少し ×食べられず。めまい回数は選択肢（1回／2〜3回／4〜5回／6回以上）を 1／2.5／4.5／6 として合計した目安です。気圧は記録時点の推計値（Open-Meteo）。</p>`;
+      <p class="foot">※本人がスマートフォンで選択式に記録した自己申告データです。各記録は対象期間（${App.periodDefs()}）の状態を表します。活動は 徒=徒歩／施=ストレッチ施術／立=立位での事務／座=座位での事務 の1日合計（分）。食事は ◎しっかり ○半分 △少し ×食べられず。めまい回数は選択肢（1回／2〜3回／4〜5回／6回以上）を 1／2.5／4.5／6 として合計した目安です。気圧は記録時点の推計値（Open-Meteo）。</p>`;
     $("#paper").innerHTML = h;
 
     const labels = days.map((d) => { const x = App.parseYmd(d); return `${x.getMonth() + 1}/${x.getDate()}`; });
