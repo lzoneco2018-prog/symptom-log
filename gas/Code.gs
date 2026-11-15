@@ -94,7 +94,7 @@ function doPost(e) {
 function route_(action, body, me) {
   const user = findUser_(me.userId);
   const conf = getSettings_();
-  const base = { patientName: conf.PATIENT_NAME, slots: slots_(conf) };
+  const base = { patientName: conf.PATIENT_NAME, slots: slots_(conf), remindTimes: remindTimes_(conf) };
 
   if (action === 'me') {
     return Object.assign(base, { role: user ? user.role : null, name: me.name });
@@ -292,7 +292,7 @@ function tick() {
     sendOnce_(props, 'rm_' + today + '_' + i, nowMin >= t && nowMin < t + 60, () => {
       if (!recordExists_(today, slot)) {
         pushTo_(usersByRole_('patient'), [linkMessage_(
-          slot + 'の体調記録の時間です。\n選ぶだけで1分ほどで終わります。', '記録する', appUrl_('record', slot))], 'remind');
+          slot + 'の体調記録の時間です。\n対象期間：' + periodText_(conf, i) + '\n選ぶだけで1分ほどで終わります。', '記録する', appUrl_('record', slot))], 'remind');
       }
     });
     // 再通知
@@ -447,6 +447,14 @@ function setSetting_(key, value) {
   const v = sh.getDataRange().getValues();
   const i = v.findIndex((r) => r[0] === key);
   if (i > 0) sh.getRange(i + 1, 2).setValue(value); else sh.appendRow([key, value, '']);
+}
+function remindTimes_(conf) { return String(conf.REMIND_TIMES || '08:00,13:00,21:00').split(',').map((s) => s.trim()); }
+// 記録の対象期間：前の時間帯の記録時刻 〜 この時間帯の記録時刻（先頭の時間帯は前夜から）
+function periodText_(conf, i) {
+  const t = remindTimes_(conf), n = t.length;
+  const h = (x) => { const m = String(x).match(/^(\d{1,2}):(\d{2})/); return m ? Number(m[1]) + '時' + (m[2] !== '00' ? Number(m[2]) + '分' : '') : x; };
+  const s = slots_(conf), p = (i - 1 + n) % n;
+  return (i === 0 ? '前日' : '') + (s[p] || '') + h(t[p]) + ' 〜 ' + (s[i] || '') + h(t[i]);
 }
 function slots_(conf) { return String(conf.SLOTS || '朝,昼,夜').split(',').map((s) => s.trim()).filter(String); }
 function appUrl_(view, slot) {
