@@ -93,6 +93,7 @@
       if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return new Promise(() => {}); }
       App.idToken = liff.getIDToken();
       App.me = await App.call("me");
+      try { sessionStorage.removeItem("relogin"); } catch (e) {}
       return App.me;
     },
 
@@ -101,11 +102,23 @@
       const res = await fetch(C.GAS_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" }, // プリフライト回避
-        body: JSON.stringify(Object.assign({ action, idToken: App.idToken }, payload)),
+        // アクセストークン（アプリを開いている間有効）を優先。IDトークンは約1時間で期限切れになる
+        body: JSON.stringify(Object.assign({ action, idToken: liff.getIDToken(), accessToken: liff.getAccessToken() }, payload)),
       });
       const j = await res.json();
       if (!j.ok) {
-        if (j.error === "token_invalid") { liff.logout(); liff.login({ redirectUri: location.href }); }
+        if (j.error === "token_invalid" || j.error === "no_token") {
+          // ログイン情報の期限切れ → 入力中の内容を残して自動で再ログイン（1回だけ）
+          let tried = false;
+          try { tried = sessionStorage.getItem("relogin") === "1"; sessionStorage.setItem("relogin", "1"); } catch (e) {}
+          if (!tried) {
+            if (App.beforeRelogin) App.beforeRelogin();
+            liff.logout();
+            if (liff.isInClient()) location.reload(); else liff.login({ redirectUri: location.href });
+            return new Promise(() => {});
+          }
+          throw new Error("ログインの有効期限が切れました。LINEのトーク画面に戻り、メニューから開き直してください");
+        }
         throw new Error(j.error || "通信エラー");
       }
       return j;

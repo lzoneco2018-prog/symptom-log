@@ -75,10 +75,19 @@
   // ---------------- 記録フォーム ----------------
   function findRec(date, slot) { return S.records.find((r) => r.date === date && r.slot === slot); }
 
+  // 入力途中の内容を端末に一時保存（再ログインやアプリを閉じた時に消えないように）
+  const draftKey = () => `draft_${S.date}_${S.slot}`;
+  function saveDraft() { try { localStorage.setItem(draftKey(), JSON.stringify(S.rec)); } catch (e) {} }
+  function loadDraft() { try { return JSON.parse(localStorage.getItem(draftKey()) || "null"); } catch (e) { return null; } }
+  function clearDraft() { try { localStorage.removeItem(draftKey()); } catch (e) {} }
+  App.beforeRelogin = saveDraft;
+
   function loadForm() {
     const ex = findRec(S.date, S.slot);
-    S.rec = ex ? JSON.parse(JSON.stringify(ex.record)) : {};
+    const draft = loadDraft();
+    S.rec = draft || (ex ? JSON.parse(JSON.stringify(ex.record)) : {});
     renderForm();
+    if (draft) App.toast("入力途中の内容を復元しました");
   }
 
   function renderForm() {
@@ -113,7 +122,7 @@
     $("#dateSel").onchange = (e) => { S.date = e.target.value; loadForm(); };
     main.querySelectorAll(".slots button").forEach((b) => b.onclick = () => { S.slot = b.dataset.slot; loadForm(); });
     main.querySelectorAll("[data-k]").forEach((b) => b.onclick = () => onChip(b.dataset.k, b.dataset.v));
-    main.querySelectorAll("textarea[data-text]").forEach((t) => t.oninput = (e) => { S.rec[e.target.dataset.text] = e.target.value; });
+    main.querySelectorAll("textarea[data-text]").forEach((t) => t.oninput = (e) => { S.rec[e.target.dataset.text] = e.target.value; saveDraft(); });
   }
 
   function renderField(f) {
@@ -160,6 +169,7 @@
     } else {
       S.rec[key] = S.rec[key] === val ? undefined : val;
     }
+    saveDraft();
     const y = window.scrollY;
     renderForm();
     window.scrollTo(0, y);
@@ -173,6 +183,7 @@
     const copy = JSON.parse(JSON.stringify(prev.record));
     delete copy.memo; delete copy.redflags; delete copy.activity_other;
     S.rec = Object.assign({}, S.rec, copy);
+    saveDraft();
     renderForm();
     App.toast(`${App.mdw(prev.date)} ${prev.slot}の内容をコピーしました。違う所だけ直してください`);
   };
@@ -200,6 +211,7 @@
       const r = await App.call("submit", { date: S.date, slot: S.slot, record: rec, labels });
       const i = S.records.findIndex((x) => x.id === r.saved.id);
       if (i >= 0) S.records[i] = r.saved; else S.records.push(r.saved);
+      clearDraft();
       App.toast("保存しました。おつかれさまでした");
       renderForm();
     } catch (e) {
