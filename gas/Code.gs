@@ -83,7 +83,7 @@ function doPost(e) {
 
   // LIFF からの API
   try {
-    const me = verifyIdToken_(body.idToken);
+    const me = body.accessToken ? verifyAccessToken_(body.accessToken) : verifyIdToken_(body.idToken);
     const res = route_(body.action, body, me);
     return json_(Object.assign({ ok: true }, res));
   } catch (err) {
@@ -124,8 +124,32 @@ function route_(action, body, me) {
 }
 
 // ================================================================
-// 認証（LIFF IDトークンをLINEで検証）
+// 認証（LIFFのアクセストークン、またはIDトークンをLINEで検証）
+//   IDトークンは発行から約1時間で期限切れになるため、アクセストークンを優先して使う
 // ================================================================
+function verifyAccessToken_(accessToken) {
+  const cache = CacheService.getScriptCache();
+  const key = 'at_' + Utilities.base64EncodeWebSafe(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, accessToken)).slice(0, 40);
+  const hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+
+  const channelId = prop_('LINE_LOGIN_CHANNEL_ID');
+  const v = UrlFetchApp.fetch('https://api.line.me/oauth2/v2.1/verify?access_token=' + encodeURIComponent(accessToken),
+    { muteHttpExceptions: true });
+  if (v.getResponseCode() !== 200) { log_('auth_error', 0, 'access_token ' + v.getContentText().slice(0, 150)); throw new Error('token_invalid'); }
+  const vj = JSON.parse(v.getContentText());
+  if (String(vj.client_id) !== String(channelId) || Number(vj.expires_in) <= 0) {
+    log_('auth_error', 0, 'access_token client_id/expire mismatch'); throw new Error('token_invalid');
+  }
+  const p = UrlFetchApp.fetch('https://api.line.me/v2/profile', { headers: { Authorization: 'Bearer ' + accessToken }, muteHttpExceptions: true });
+  if (p.getResponseCode() !== 200) { log_('auth_error', 0, 'profile ' + p.getContentText().slice(0, 150)); throw new Error('token_invalid'); }
+  const pj = JSON.parse(p.getContentText());
+  const me = { userId: pj.userId, name: pj.displayName || '' };
+  cache.put(key, JSON.stringify(me), Math.max(60, Math.min(1800, Number(vj.expires_in) - 60)));
+  return me;
+}
+
 function verifyIdToken_(idToken) {
   if (!idToken) throw new Error('no_token');
   const cache = CacheService.getScriptCache();
@@ -138,7 +162,7 @@ function verifyIdToken_(idToken) {
   const res = UrlFetchApp.fetch('https://api.line.me/oauth2/v2.1/verify', {
     method: 'post', payload: { id_token: idToken, client_id: channelId }, muteHttpExceptions: true,
   });
-  if (res.getResponseCode() !== 200) throw new Error('token_invalid');
+  if (res.getResponseCode() !== 200) { log_('auth_error', 0, 'id_token ' + res.getContentText().slice(0, 150)); throw new Error('token_invalid'); }
   const j = JSON.parse(res.getContentText());
   const me = { userId: j.sub, name: j.name || '' };
   cache.put(key, JSON.stringify(me), 1800);
