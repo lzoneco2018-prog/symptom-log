@@ -105,3 +105,4 @@ textarea { width: 100%; min-height: 80px; font: inherit; padding: 10px; border: 
 .period { margin: 10px 0 0; padding: 10px 12px; background: var(--accent-soft); border-radius: 10px; font-size: 14px; color: var(--ink); }
 .period b { color: var(--accent); }
 .period span { font-size: 12px; color: var(--ink2); }
+.unsaved { margin: 10px 0 0; padding: 10px 12px; background: #fff4e5; border: 2px solid #eb6834; border-radius: 10px; font-size: 14px; color: #8a3b12; }

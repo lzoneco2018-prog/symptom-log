@@ -27,6 +27,16 @@
     $("#navRecord").hidden = S.me.role !== "patient";
     document.querySelectorAll("#nav button").forEach((b) => b.addEventListener("click", () => go(b.dataset.view)));
     await loadRecords();
+    let pending = null;
+    try { pending = sessionStorage.getItem("pendingSubmit"); sessionStorage.removeItem("pendingSubmit"); } catch (e) {}
+    if (pending && S.me.role === "patient") {
+      const [d, sl] = pending.split("|");
+      S.date = d; S.slot = sl;
+      go("record");
+      App.toast("ログインし直しました。保存しています…");
+      doSave();
+      return;
+    }
     go(S.view);
   })();
 
@@ -80,14 +90,18 @@
   function saveDraft() { try { localStorage.setItem(draftKey(), JSON.stringify(S.rec)); } catch (e) {} }
   function loadDraft() { try { return JSON.parse(localStorage.getItem(draftKey()) || "null"); } catch (e) { return null; } }
   function clearDraft() { try { localStorage.removeItem(draftKey()); } catch (e) {} }
-  App.beforeRelogin = saveDraft;
+  App.beforeRelogin = () => {
+    saveDraft();
+    // 保存ボタンを押した直後の再ログインなら、戻ってきた後に自動で保存し直す
+    if (S.saving) { try { sessionStorage.setItem("pendingSubmit", `${S.date}|${S.slot}`); } catch (e) {} }
+  };
 
   function loadForm() {
     const ex = findRec(S.date, S.slot);
     const draft = loadDraft();
     S.rec = draft || (ex ? JSON.parse(JSON.stringify(ex.record)) : {});
+    S.unsaved = !!draft;
     renderForm();
-    if (draft) App.toast("入力途中の内容を復元しました");
   }
 
   function renderForm() {
@@ -102,6 +116,7 @@
     let html = demoBanner() + `<div class="bar"><select id="dateSel">${dateOpts}</select>
       <span class="muted" style="font-size:13px">${findRec(S.date, S.slot) ? "記録済み：上書き保存されます" : ""}</span></div>
       <div class="slots">${slotBtns}</div>
+      ${S.unsaved ? `<div class="unsaved">この内容は<b>まだ保存されていません</b>。確認して下の「保存する」を押してください。</div>` : ""}
       <div class="period">この記録の対象期間：<b>${App.periodText(S.slot)}</b><br><span>前回の記録時刻から今回の記録時刻までの状態を記録します</span></div>`;
 
     window.FIELD_GROUPS.forEach((g, gi) => {
@@ -170,6 +185,7 @@
       S.rec[key] = S.rec[key] === val ? undefined : val;
     }
     saveDraft();
+    S.unsaved = true;
     const y = window.scrollY;
     renderForm();
     window.scrollTo(0, y);
@@ -188,7 +204,8 @@
     App.toast(`${App.mdw(prev.date)} ${prev.slot}の内容をコピーしました。違う所だけ直してください`);
   };
 
-  $("#saveBtn").onclick = async () => {
+  $("#saveBtn").onclick = () => doSave();
+  async function doSave() {
     const missing = REQUIRED.filter((k) => S.rec[k] === undefined || S.rec[k] === null || S.rec[k] === "");
     if (missing.length) {
       const names = missing.map((k) => window.ALL_FIELDS.find((f) => f.key === k).label.replace(/（.*）/, ""));
@@ -206,20 +223,21 @@
       });
     });
     const btn = $("#saveBtn");
-    btn.disabled = true; btn.textContent = "保存中…";
+    btn.disabled = true; btn.textContent = "保存中…"; S.saving = true;
     try {
       const r = await App.call("submit", { date: S.date, slot: S.slot, record: rec, labels });
       const i = S.records.findIndex((x) => x.id === r.saved.id);
       if (i >= 0) S.records[i] = r.saved; else S.records.push(r.saved);
-      clearDraft();
+      clearDraft(); S.unsaved = false;
       App.toast("保存しました。おつかれさまでした");
       renderForm();
     } catch (e) {
       App.toast("保存できませんでした：" + e.message);
+      alert("保存できませんでした。\n" + e.message + "\n\n入力内容はこの端末に残っています。");
     } finally {
-      btn.disabled = false; btn.textContent = "保存する";
+      btn.disabled = false; btn.textContent = "保存する"; S.saving = false;
     }
-  };
+  }
 
   // ---------------- 履歴・グラフ ----------------
   function renderHistory() {
