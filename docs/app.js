@@ -137,6 +137,7 @@
     $("#dateSel").onchange = (e) => { S.date = e.target.value; loadForm(); };
     main.querySelectorAll(".slots button").forEach((b) => b.onclick = () => { S.slot = b.dataset.slot; loadForm(); });
     main.querySelectorAll("[data-k]").forEach((b) => b.onclick = () => onChip(b.dataset.k, b.dataset.v));
+    main.querySelectorAll("input[data-time]").forEach((t) => t.onchange = t.oninput = (e) => { S.rec[e.target.dataset.time] = e.target.value; saveDraft(); });
     main.querySelectorAll("textarea[data-text]").forEach((t) => t.oninput = (e) => { S.rec[e.target.dataset.text] = e.target.value; saveDraft(); });
   }
 
@@ -156,6 +157,9 @@
     } else if (f.type === "minutes") {
       body = `<div class="chips grid4">${f.options.map((o, i) =>
         `<button class="chip ${on(o)}" data-k="${f.key}" data-v="${o}">${window.fmtMin(o, i === f.options.length - 1)}</button>`).join("")}</div>`;
+    } else if (f.type === "time") {
+      body = `<input type="time" class="timein" data-time="${f.key}" value="${App.esc(v || "")}">
+        <div class="muted" style="font-size:12px;margin-top:4px">だいたいの時刻で大丈夫です（点滴を始めた時刻）</div>`;
     } else if (f.type === "text") {
       body = `<textarea data-text="${f.key}" placeholder="${App.esc(f.placeholder || "自由にどうぞ（空欄でもOK）")}">${App.esc(v || "")}</textarea>`;
     } else {
@@ -210,6 +214,11 @@
     if (missing.length) {
       const names = missing.map((k) => window.ALL_FIELDS.find((f) => f.key === k).label.replace(/（.*）/, ""));
       return App.toast(`「${names.join("」「")}」を選んでください`);
+    }
+    if (Array.isArray(S.rec.care) && S.rec.care.includes("点滴") && window.SLOTS.indexOf(S.slot) === window.SLOTS.length - 1 && !S.rec.drip_time) {
+      const el = document.querySelector('input[data-time="drip_time"]');
+      if (el) el.scrollIntoView({ block: "center" });
+      return App.toast("点滴を受けた時刻を入れてください");
     }
     // 表示されている項目だけ保存
     const rec = {}, labels = {};

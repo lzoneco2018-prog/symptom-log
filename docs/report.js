@@ -71,7 +71,8 @@
     const vRecs = recs.filter((r) => App.vertigoNum(r.record) > 0);
     // 処置（通院・点滴・ブラッドパッチ）
     const events = night.filter((r) => (r.record.care || []).some((c) => ["通院", "点滴", "ブラッドパッチ"].includes(c)))
-      .map((r) => `${App.mdw(r.date)} ${(r.record.care || []).filter((c) => ["通院", "点滴", "ブラッドパッチ"].includes(c)).join("・")}`);
+      .map((r) => `${App.mdw(r.date)} ${(r.record.care || []).filter((c) => ["通院", "点滴", "ブラッドパッチ"].includes(c))
+        .map((c) => c === "点滴" && r.record.drip_time ? `点滴(${r.record.drip_time})` : c).join("・")}`);
     const alerts = recs.filter((r) => App.isAlert(r.record));
     const memos = recs.filter((r) => r.record.memo);
 
@@ -199,7 +200,8 @@
         <td>${E(uni("symptoms").join("・"))}</td>
         <td>${actCell(any)}</td>
         <td>${n ? E([n.record.upright_time, n.record.water && "水" + n.record.water].filter(Boolean).join("<br>")).replace(/&lt;br&gt;/g, "<br>") : ""}</td>
-        <td>${n ? E([...(n.record.prn || []).filter((x) => x !== "なし"), ...(n.record.care || []).filter((x) => !["なし", "安静・横になる"].includes(x))].join("・")) : ""}</td>
+        <td>${n ? E([...(n.record.prn || []).filter((x) => x !== "なし"), ...(n.record.care || []).filter((x) => !["なし", "安静・横になる"].includes(x))
+          .map((x) => x === "点滴" && n.record.drip_time ? `点滴(${n.record.drip_time})` : x)].join("・")) : ""}</td>
         <td>${m ? E(m.record.sleep_quality || "") : ""}</td>
       </tr>`;
     });

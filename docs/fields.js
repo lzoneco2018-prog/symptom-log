@@ -103,6 +103,8 @@ window.FIELD_GROUPS = [
       { key: "care", short: "処置・ケア", label: "した処置・ケア", type: "multi", slots: ["夜"], exclusive: "なし",
         options: ["なし", "安静・横になる", "めまい体操・耳石を戻す体操", "通院", "点滴",
                   "ブラッドパッチ", "その他"] },
+      { key: "drip_time", short: "点滴の時刻", label: "点滴を受けた時刻", type: "time", slots: ["夜"],
+        showIf: (r) => Array.isArray(r.care) && r.care.includes("点滴") },
       { key: "weather", short: "天気", label: "天気", type: "single", slots: ["夜"],
         options: ["晴れ", "くもり", "雨", "台風・低気圧"] },
       { key: "mood", short: "気分(1-5)", label: "気分", type: "scale5", slots: ["夜"],

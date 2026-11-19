@@ -62,7 +62,7 @@
           water: pick(["1.5〜2L", "2L以上", "1〜1.5L"]),
           meds: "すべて飲んだ",
           prn: base >= 6 ? ["痛み止め"] : ["なし"],
-          care: i === 10 ? ["通院"] : ["安静・横になる"],
+          care: i === 10 ? ["通院"] : i % 4 === 1 ? ["点滴"] : ["安静・横になる"], drip_time: i % 4 === 1 ? "14:30" : undefined,
           weather: pick(["晴れ", "くもり", "雨"]),
           mood: Math.max(1, Math.min(5, 4 - Math.round(base / 4))),
         });
