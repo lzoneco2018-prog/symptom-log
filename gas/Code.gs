@@ -377,6 +377,7 @@ function buildSummaryText_(date, conf) {
     lines.push('■' + slot + '：' + parts.join('／'));
     if (act.length) lines.push('　活動：' + act.join('・'));
     if (d.upright_time) lines.push('　起きて過ごせた時間 ' + d.upright_time + '／水分 ' + (d.water || '-'));
+    if (Array.isArray(d.care) && d.care.indexOf('点滴') >= 0) lines.push('　点滴：' + (d.drip_time || '時刻未入力'));
     if (d.memo) lines.push('　メモ：' + d.memo);
   });
   if (alert) lines.push('\n※今日は注意が必要な記録がありました。');
