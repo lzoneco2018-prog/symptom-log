@@ -76,10 +76,34 @@
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
   let demoStore = null;
+  const APP_VERSION = "2026-11-23a";
+
+  // ---------- 端末側のエラーをサーバーに記録（原因調査用。届かない時は端末に貯めて次回送る） ----------
+  const LOGQ = "clientLogQueue";
+  function readQ() { try { return JSON.parse(localStorage.getItem(LOGQ) || "[]"); } catch (e) { return []; } }
+  function writeQ(q) { try { localStorage.setItem(LOGQ, JSON.stringify(q.slice(-20))); } catch (e) {} }
+  async function sendLogs(items) {
+    if (DEMO || !C.GAS_URL || !items.length) return true;
+    try {
+      const r = await fetch(C.GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "clientlog", items }) });
+      return r.ok;
+    } catch (e) { return false; }
+  }
 
   // ---------- API ----------
   const App = {
-    DEMO, params, me: null, idToken: null,
+    DEMO, params, me: null, idToken: null, VERSION: APP_VERSION,
+
+    // 何が起きたかをサーバーの「送信ログ」に残す
+    async report(type, message, extra) {
+      const item = { t: new Date().toISOString(), type, message: String(message || "").slice(0, 300), v: APP_VERSION,
+        who: App.me ? App.me.role : "", ua: navigator.userAgent.slice(0, 120), ...(extra || {}) };
+      const q = readQ(); q.push(item);
+      if (await sendLogs(q)) writeQ([]); else writeQ(q);
+    },
+    flushLogs() { const q = readQ(); if (q.length) sendLogs(q).then((ok) => ok && writeQ([])); },
+
     ymd, addDays, parseYmd, mdw, today, dateRange, SLOT_COLORS,
 
     async init() {
@@ -99,13 +123,24 @@
 
     async call(action, payload = {}) {
       if (DEMO) return demoCall(action, payload);
-      const res = await fetch(C.GAS_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" }, // プリフライト回避
-        // アクセストークン（アプリを開いている間有効）を優先。IDトークンは約1時間で期限切れになる
-        body: JSON.stringify(Object.assign({ action, idToken: liff.getIDToken(), accessToken: liff.getAccessToken() }, payload)),
-      });
-      const j = await res.json();
+      let j;
+      const ctrl = window.AbortController ? new AbortController() : null;
+      const timer = setTimeout(() => ctrl && ctrl.abort(), 30000);
+      try {
+        const res = await fetch(C.GAS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" }, // プリフライト回避
+          // アクセストークン（アプリを開いている間有効）を優先。IDトークンは約1時間で期限切れになる
+          body: JSON.stringify(Object.assign({ action, idToken: liff.getIDToken(), accessToken: liff.getAccessToken(), v: APP_VERSION }, payload)),
+          signal: ctrl ? ctrl.signal : undefined,
+        });
+        const text = await res.text();
+        try { j = JSON.parse(text); } catch (e) { throw new Error("サーバーの応答が不正です（" + res.status + "）"); }
+      } catch (e) {
+        App.report("network", `${action}: ${e.name} ${e.message}`);
+        throw new Error(e.name === "AbortError" ? "通信がタイムアウトしました。電波の良い場所でもう一度お試しください"
+          : e.message.startsWith("サーバー") ? e.message : "通信できませんでした。電波の良い場所でもう一度お試しください");
+      } finally { clearTimeout(timer); }
       if (!j.ok) {
         if (j.error === "token_invalid" || j.error === "no_token") {
           // ログイン情報の期限切れ → 入力中の内容を残して自動で再ログイン（1回だけ）
@@ -119,6 +154,7 @@
           }
           throw new Error("ログインの有効期限が切れました。LINEのトーク画面に戻り、メニューから開き直してください");
         }
+        App.report("api_error", `${action}: ${j.error}`);
         throw new Error(j.error || "通信エラー");
       }
       return j;
@@ -245,6 +281,19 @@
     svg.addEventListener("pointerdown", move);
     svg.addEventListener("pointerleave", out);
   }
+
+  // 想定外のエラーも画面に表示し、サーバーに記録する
+  function showFatal(msg) {
+    let el = document.getElementById("fatal");
+    if (!el) {
+      el = document.createElement("div"); el.id = "fatal"; el.className = "fatal";
+      document.body.prepend(el);
+    }
+    el.innerHTML = `エラーが発生しました。画面を閉じて、LINEのメニューから開き直してください。<br><small>${App.esc(msg)}（${APP_VERSION}）</small>`;
+  }
+  App.showFatal = showFatal;
+  window.addEventListener("error", (e) => { App.report("js_error", `${e.message} @${(e.filename || "").split("/").pop()}:${e.lineno}`); showFatal(e.message); });
+  window.addEventListener("unhandledrejection", (e) => { const m = e.reason && e.reason.message || String(e.reason); App.report("js_error", "promise: " + m); showFatal(m); });
 
   window.App = App;
 })();

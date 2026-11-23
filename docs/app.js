@@ -14,9 +14,19 @@
     try {
       S.me = await App.init();
     } catch (e) {
-      main.innerHTML = `<div class="card">起動できませんでした：${App.esc(e.message)}</div>`;
+      App.report("start_error", e.message);
+      main.innerHTML = `<div class="card">起動できませんでした：${App.esc(e.message)}<br><button class="btn" onclick="location.reload()" style="margin-top:10px">もう一度読み込む</button></div>`;
       return;
     }
+    try { await start2(); } catch (e) {
+      App.report("start_error", e.message);
+      main.innerHTML = `<div class="card">読み込みに失敗しました：${App.esc(e.message)}<br><button class="btn" onclick="location.reload()" style="margin-top:10px">もう一度読み込む</button></div>`;
+    }
+  })();
+
+  async function start2() {
+    App.flushLogs();
+    S.loadedAt = Date.now(); S.loadedDay = App.today();
     const p = new URLSearchParams(location.search);
     S.slot = (window.SLOTS.includes(p.get("slot")) && p.get("slot")) || defaultSlot();
     if (!S.me.role) return renderRegister();
@@ -38,7 +48,37 @@
       return;
     }
     go(S.view);
-  })();
+    if (S.me.role === "patient") flushOutbox();
+  }
+
+  // 画面を開きっぱなしで日付が変わった・長時間経った場合は、戻ってきた時に自動で読み込み直す
+  // （入力途中の内容は端末に一時保存されているので消えません）
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !S.loadedAt || S.saving) return;
+    if (App.today() !== S.loadedDay || Date.now() - S.loadedAt > 30 * 60 * 1000) location.reload();
+  });
+
+  // ---------------- 未送信の記録（通信失敗時に端末へ保管し、次に開いた時に自動で送る） ----------------
+  const OUTBOX = "outbox";
+  function readOutbox() { try { return JSON.parse(localStorage.getItem(OUTBOX) || "[]"); } catch (e) { return []; } }
+  function writeOutbox(a) { try { localStorage.setItem(OUTBOX, JSON.stringify(a)); } catch (e) {} }
+  function addOutbox(item) { const a = readOutbox().filter((x) => !(x.date === item.date && x.slot === item.slot)); a.push(item); writeOutbox(a); }
+  async function flushOutbox() {
+    const a = readOutbox();
+    if (!a.length) return;
+    const rest = [];
+    for (const it of a) {
+      try {
+        const r = await App.call("submit", it);
+        const i = S.records.findIndex((x) => x.id === r.saved.id);
+        if (i >= 0) S.records[i] = r.saved; else S.records.push(r.saved);
+        try { localStorage.removeItem(`draft_${it.date}_${it.slot}`); } catch (e) {}
+      } catch (e) { rest.push(it); }
+    }
+    writeOutbox(rest);
+    const sent = a.length - rest.length;
+    if (sent) { App.toast(`送れていなかった記録を${sent}件送信しました`); App.report("outbox_sent", `${sent}件`); if (S.view === "record") loadForm(); }
+  }
 
   async function loadRecords() {
     const r = await App.call("list", { from: App.addDays(App.today(), -60), to: App.today() });
@@ -132,6 +172,7 @@
       }
       html += `</section>`;
     });
+    html += `<p class="ver">ver ${App.VERSION}</p>`;
     main.innerHTML = html;
 
     $("#dateSel").onchange = (e) => { S.date = e.target.value; loadForm(); };
@@ -213,12 +254,14 @@
     const missing = REQUIRED.filter((k) => S.rec[k] === undefined || S.rec[k] === null || S.rec[k] === "");
     if (missing.length) {
       const names = missing.map((k) => window.ALL_FIELDS.find((f) => f.key === k).label.replace(/（.*）/, ""));
-      return App.toast(`「${names.join("」「")}」を選んでください`);
+      App.report("save_blocked", "未選択: " + missing.join(","), { date: S.date, slot: S.slot });
+      return showNotice(`「${names.join("」「")}」を選んでから保存してください`, "warn");
     }
     if (Array.isArray(S.rec.care) && S.rec.care.includes("点滴") && window.SLOTS.indexOf(S.slot) === window.SLOTS.length - 1 && !S.rec.drip_time) {
       const el = document.querySelector('input[data-time="drip_time"]');
       if (el) el.scrollIntoView({ block: "center" });
-      return App.toast("点滴を受けた時刻を入れてください");
+      App.report("save_blocked", "点滴時刻なし", { date: S.date, slot: S.slot });
+      return showNotice("点滴を受けた時刻を入れてから保存してください", "warn");
     }
     // 表示されている項目だけ保存
     const rec = {}, labels = {};
@@ -238,14 +281,26 @@
       const i = S.records.findIndex((x) => x.id === r.saved.id);
       if (i >= 0) S.records[i] = r.saved; else S.records.push(r.saved);
       clearDraft(); S.unsaved = false;
-      App.toast("保存しました。おつかれさまでした");
       renderForm();
+      const now = new Date();
+      showNotice(`保存しました（${App.mdw(S.date)} ${S.slot}・${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}）`, "ok");
     } catch (e) {
-      App.toast("保存できませんでした：" + e.message);
+      saveDraft();
+      if (!/合言葉|本人のみ/.test(e.message)) addOutbox({ date: S.date, slot: S.slot, record: rec, labels });
+      showNotice("保存できませんでした：" + e.message + "<br>入力内容はこの端末に残っています。次に画面を開いた時に自動で送り直します。", "error");
       alert("保存できませんでした。\n" + e.message + "\n\n入力内容はこの端末に残っています。");
     } finally {
       btn.disabled = false; btn.textContent = "保存する"; S.saving = false;
     }
+  }
+
+  // 保存結果などを画面上部に大きく表示
+  function showNotice(html, kind) {
+    let el = document.getElementById("notice");
+    if (!el) { el = document.createElement("div"); el.id = "notice"; document.body.appendChild(el); }
+    el.className = "notice " + kind; el.innerHTML = html; el.hidden = false;
+    clearTimeout(el._h); el._h = setTimeout(() => { el.hidden = true; }, kind === "ok" ? 4000 : 8000);
+    el.onclick = () => { el.hidden = true; };
   }
 
   // ---------------- 履歴・グラフ ----------------
