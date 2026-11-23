@@ -81,13 +81,24 @@ function doPost(e) {
     return json_({ ok: true });
   }
 
+  // 端末側のエラー記録（認証不要・件数制限あり）
+  if (body && body.action === 'clientlog') {
+    try { clientLog_(body.items); } catch (err) { /* ignore */ }
+    return json_({ ok: true });
+  }
+
   // LIFF からの API
+  let me = null;
   try {
-    const me = body.accessToken ? verifyAccessToken_(body.accessToken) : verifyIdToken_(body.idToken);
+    me = body.accessToken ? verifyAccessToken_(body.accessToken) : verifyIdToken_(body.idToken);
     const res = route_(body.action, body, me);
+    if (body.action === 'submit') log_('saved', 0, (res.saved && res.saved.id) + ' by ' + me.name + ' v' + (body.v || '?'));
     return json_(Object.assign({ ok: true }, res));
   } catch (err) {
-    return json_({ ok: false, error: err.message || String(err) });
+    const msg = err.message || String(err);
+    // 失敗はすべて送信ログに残す（原因調査用）
+    if (msg !== 'token_invalid') log_('api_error', 0, (body.action || '?') + ': ' + msg + ' / ' + (me ? me.name : '未認証') + ' v' + (body.v || '?'));
+    return json_({ ok: false, error: msg });
   }
 }
 
@@ -338,6 +349,18 @@ function tick() {
   }
 
   cleanupProps_(props, today);
+}
+
+function clientLog_(items) {
+  if (!Array.isArray(items)) return;
+  const cache = CacheService.getScriptCache();
+  const n = Number(cache.get('clientlog_n') || 0);
+  if (n > 60) return; // 10分あたりの上限
+  cache.put('clientlog_n', String(n + items.length), 600);
+  items.slice(0, 10).forEach((it) => {
+    log_('client_' + String(it.type || '').slice(0, 20), 0,
+      [it.t, it.who, it.date ? it.date + '_' + it.slot : '', it.message, 'v' + it.v, it.ua].filter(Boolean).join(' | ').slice(0, 450));
+  });
 }
 
 function sendOnce_(props, key, cond, fn) {
