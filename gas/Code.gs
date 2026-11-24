@@ -108,6 +108,8 @@ function route_(action, body, me) {
   const base = { patientName: conf.PATIENT_NAME, slots: slots_(conf), remindTimes: remindTimes_(conf) };
 
   if (action === 'me') {
+    // 誰が・どの版の画面で開いたかを記録（不具合調査用）
+    log_('open', 0, me.name + ' / ' + (user ? user.role : '未登録') + ' / v' + (body.v || '旧版'));
     return Object.assign(base, { role: user ? user.role : null, name: me.name });
   }
   if (action === 'register') {
@@ -425,6 +427,7 @@ function handleWebhook_(events) {
         '友だち追加ありがとうございます。\n最初に下のボタンから画面を開き、お知らせされた「合言葉」を入力して登録してください。',
         '登録・記録画面を開く', appUrl_('record'))]);
     } else if (ev.type === 'message') {
+      log_('line_message', 0, (ev.source && ev.source.userId || '').slice(-6) + ': ' + String(ev.message && (ev.message.text || ev.message.type) || '').slice(0, 100));
       reply_(ev.replyToken, [linkMessage_('メニューを開きます。', '記録・履歴を開く', appUrl_('record'))]);
     }
   });
