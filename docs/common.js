@@ -4,7 +4,8 @@
 (function () {
   const C = window.APP_CONFIG || {};
   const params = new URLSearchParams(location.search);
-  const DEMO = params.get("demo") === "1" || !C.LIFF_ID || !C.GAS_URL;
+  // 見本（デモ）表示は URL に ?demo=1 を付けた時だけ。設定が読めない時は見本にせずエラーにする
+  const DEMO = params.get("demo") === "1";
   const SLOT_COLORS = { 朝: "var(--s1)", 昼: "var(--s2)", 夜: "var(--s3)" };
 
   // ---------- 日付 ----------
@@ -76,7 +77,7 @@
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
   let demoStore = null;
-  const APP_VERSION = "2026-11-23a";
+  const APP_VERSION = "2026-11-24a";
 
   // ---------- 端末側のエラーをサーバーに記録（原因調査用。届かない時は端末に貯めて次回送る） ----------
   const LOGQ = "clientLogQueue";
@@ -113,6 +114,7 @@
         App.me = { role, name: "デモユーザー", patientName: "本人（デモ）", slots: window.SLOTS, remindTimes: ["08:00", "13:00", "21:00"] };
         return App.me;
       }
+      if (!C.LIFF_ID || !C.GAS_URL) throw new Error("設定が読み込めませんでした。LINEのメニューから開き直してください");
       await liff.init({ liffId: C.LIFF_ID });
       if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return new Promise(() => {}); }
       App.idToken = liff.getIDToken();

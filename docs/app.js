@@ -26,6 +26,7 @@
 
   async function start2() {
     App.flushLogs();
+    if (App.DEMO) { $("#saveBtn").textContent = "見本のため保存されません"; $("#saveBtn").style.background = "#8a8983"; }
     S.loadedAt = Date.now(); S.loadedDay = App.today();
     const p = new URLSearchParams(location.search);
     S.slot = (window.SLOTS.includes(p.get("slot")) && p.get("slot")) || defaultSlot();
@@ -98,7 +99,7 @@
   }
 
   function demoBanner() {
-    return App.DEMO ? `<div class="demo-banner">デモモードです（サンプルデータ・保存されません）。config.js を設定すると本番モードになります。</div>` : "";
+    return App.DEMO ? `<div class="demo-banner" style="background:#fdecec;border:2px solid #c62828;color:#c62828;font-weight:700;font-size:15px">これは見本の画面です。入力しても<u>保存されません</u>。<br>記録はLINEのトーク画面のメニューから開いてください。</div>` : "";
   }
 
   // ---------------- 登録 ----------------
@@ -251,6 +252,7 @@
 
   $("#saveBtn").onclick = () => doSave();
   async function doSave() {
+    if (App.DEMO) return showNotice("これは見本の画面のため保存されません。LINEのトーク画面のメニュー「記録する」から開いてください。", "error");
     const missing = REQUIRED.filter((k) => S.rec[k] === undefined || S.rec[k] === null || S.rec[k] === "");
     if (missing.length) {
       const names = missing.map((k) => window.ALL_FIELDS.find((f) => f.key === k).label.replace(/（.*）/, ""));
